@@ -55,6 +55,14 @@ jobs:
     env:
       SKIP_AUTH: 'true'
       TEST_ID_TOKEN: test-ci-token
+      REGION: us-west-2
+      SQS_QUEUE_URL: http://localhost:4566/queue/us-west-2/000000000000/workflow-runs
+      S3_ARTIFACT_BUCKET: workflow-artifacts-dev
+      AWS_ACCESS_KEY_ID: localstack
+      AWS_SECRET_ACCESS_KEY: localstack
+      SQS_ENDPOINT: http://localhost:4566
+      S3_ENDPOINT: http://localhost:4566
+      LOCALSTACK_HOST_OVERRIDE: localhost
     steps:
       - name: Checkout
         uses: actions/checkout@v4
