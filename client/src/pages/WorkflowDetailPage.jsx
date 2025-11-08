@@ -1,12 +1,11 @@
 import { useParams } from 'react-router-dom';
-import { useWorkflowDetailQuery, useRunHistoryQuery } from '../api/queries.js';
+import { useWorkflowDetailQuery } from '../api/queries.js';
 import TriggerList from '../components/TriggerList.jsx';
 import RunHistory from '../components/RunHistory.jsx';
 
 const WorkflowDetailPage = () => {
   const { workflowId } = useParams();
   const { data: workflow } = useWorkflowDetailQuery(workflowId);
-  const { data: runs } = useRunHistoryQuery(workflowId);
 
   if (!workflow) {
     return <p>Loading workflow…</p>;
@@ -36,7 +35,7 @@ const WorkflowDetailPage = () => {
               ))}
             </ol>
           </div>
-          <RunHistory runs={runs ?? []} />
+          <RunHistory workflowId={workflowId} />
         </div>
         <TriggerList triggers={workflow.triggers ?? []} />
       </section>

@@ -13,11 +13,9 @@ import authRouter from './routes/auth.js';
 
 dotenv.config();
 
-declare global {
-  namespace Express {
-    interface Request {
-      rawBody?: string;
-    }
+declare module 'express-serve-static-core' {
+  interface Request {
+    rawBody?: string;
   }
 }
 

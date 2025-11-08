@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useRunDetailQuery } from '../api/queries.js';
+import { useMemo, useState } from 'react';
+import { useRunDetailQuery, useWorkflowRunsQuery } from '../api/queries.js';
 
 const statusColors = {
   success: 'text-emerald-400',
@@ -92,41 +92,78 @@ const RunDetailPanel = ({ runId, onClose }) => {
   );
 };
 
-const RunHistory = ({ runs = [] }) => {
+const RunHistory = ({ workflowId, initialStatus = 'all' }) => {
   const [selectedRunId, setSelectedRunId] = useState(null);
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useWorkflowRunsQuery({
+    workflowId,
+    status: statusFilter,
+  });
+
+  const runs = useMemo(
+    () => (data ? data.pages.flatMap(page => page.items ?? []) : []),
+    [data]
+  );
 
   return (
     <div className="card space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Recent Runs</h3>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold">Recent Runs</h3>
+          <select
+            className="rounded border border-slate-800 bg-slate-900 px-2 py-1 text-xs text-slate-200"
+            value={statusFilter}
+            onChange={event => setStatusFilter(event.target.value)}
+          >
+            <option value="all">All statuses</option>
+            <option value="success">Success</option>
+            <option value="failed">Failed</option>
+            <option value="running">Running</option>
+            <option value="queued">Queued</option>
+          </select>
+        </div>
         {selectedRunId && (
           <button className="text-xs text-slate-400 hover:text-white" onClick={() => setSelectedRunId(null)}>
             Clear selection
           </button>
         )}
       </div>
-      <ul className="space-y-2 text-sm">
-        {runs.map(run => (
-          <li
-            key={run.id}
-            className={`cursor-pointer rounded border border-slate-800/80 px-3 py-2 transition hover:border-slate-600 ${
-              run.id === selectedRunId ? 'border-sky-500/60 bg-slate-900/40' : ''
-            }`}
-            onClick={() => setSelectedRunId(run.id)}
-          >
-            <div className="flex items-center justify-between">
-              <span className={`font-medium capitalize ${statusColors[run.status] ?? 'text-white'}`}>{run.status}</span>
-              <span className="text-xs text-slate-400">{formatDate(run.startedAt)}</span>
-            </div>
-            <div className="mt-1 flex flex-wrap items-center justify-between text-xs text-slate-400">
-              <span>Trigger: {run.triggerKind ?? '—'}</span>
-              <span>Duration: {formatDuration(run.durationMs)}</span>
-            </div>
-            <p className="mt-1 text-[11px] text-slate-500">Run ID: {run.id}</p>
-          </li>
-        ))}
-        {!runs.length && <p className="text-slate-500">No runs yet.</p>}
-      </ul>
+      {isLoading && <p className="text-sm text-slate-400">Loading runs…</p>}
+      {!isLoading && (
+        <>
+          <ul className="space-y-2 text-sm">
+            {runs.map(run => (
+              <li
+                key={run.id}
+                className={`cursor-pointer rounded border border-slate-800/80 px-3 py-2 transition hover:border-slate-600 ${
+                  run.id === selectedRunId ? 'border-sky-500/60 bg-slate-900/40' : ''
+                }`}
+                onClick={() => setSelectedRunId(run.id)}
+              >
+                <div className="flex items-center justify-between">
+                  <span className={`font-medium capitalize ${statusColors[run.status] ?? 'text-white'}`}>{run.status}</span>
+                  <span className="text-xs text-slate-400">{formatDate(run.startedAt)}</span>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center justify-between text-xs text-slate-400">
+                  <span>Trigger: {run.triggerKind ?? '—'}</span>
+                  <span>Duration: {formatDuration(run.durationMs)}</span>
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500">Run ID: {run.id}</p>
+              </li>
+            ))}
+            {!runs.length && <p className="text-slate-500">No runs yet.</p>}
+          </ul>
+          {hasNextPage && (
+            <button
+              className="btn-secondary w-full text-xs"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+            >
+              {isFetchingNextPage ? 'Loading…' : 'Load more'}
+            </button>
+          )}
+        </>
+      )}
       {selectedRunId && <RunDetailPanel runId={selectedRunId} onClose={() => setSelectedRunId(null)} />}
     </div>
   );

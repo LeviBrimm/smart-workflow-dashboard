@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore.js';
 
 const api = axios.create({
@@ -64,10 +64,17 @@ export const useDeleteWorkflowMutation = () => {
   });
 };
 
-export const useRunHistoryQuery = workflowId =>
-  useQuery({
-    queryKey: ['runs', workflowId],
-    queryFn: async () => (await api.get(`/workflows/${workflowId}/runs`)).data,
+export const useWorkflowRunsQuery = ({ workflowId, status, limit = 10 }) =>
+  useInfiniteQuery({
+    queryKey: ['runs', workflowId, status],
+    queryFn: async ({ pageParam }) => {
+      const params = { limit };
+      if (status && status !== 'all') params.status = status;
+      if (pageParam) params.cursor = pageParam;
+      const res = await api.get(`/workflows/${workflowId}/runs`, { params });
+      return res.data;
+    },
+    getNextPageParam: lastPage => lastPage?.nextCursor ?? undefined,
     enabled: Boolean(workflowId),
   });
 
