@@ -1,0 +1,79 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: workflows
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./api
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgres://postgres:postgres@db:5432/workflows
+      PG_SSL: 'false'
+      PG_POOL_MAX: 10
+      CORS_ORIGINS: http://localhost:5173
+      REGION: us-west-2
+      SQS_QUEUE_URL: http://localstack:4566/queue/us-west-2/000000000000/workflow-runs
+      SQS_ENDPOINT: http://localstack:4566
+      S3_ENDPOINT: http://localstack:4566
+      S3_ARTIFACT_BUCKET: workflow-artifacts-dev
+      SES_SENDER: noreply@example.com
+      SES_ENDPOINT: http://localstack:4566
+      SES_CONFIGURATION_SET: ''
+      COGNITO_USER_POOL_ID: us-east-2_d173vL38i
+      COGNITO_CLIENT_ID: 5124p4a2kn6hpgs7unc0sn2fpn
+      COGNITO_CLIENT_SECRET: 1ec24i67j01hmcbtfb7tet94lijf6gkhrqis3qmt9qu350ffjn61
+      COGNITO_ISSUER: https://cognito-idp.us-east-2.amazonaws.com/us-east-2_d173vL38i
+      COGNITO_DOMAIN: https://us-east-2d173vl38i.auth.us-east-2.amazoncognito.com
+      AWS_ACCESS_KEY_ID: localstack
+      AWS_SECRET_ACCESS_KEY: localstack
+      AWS_SDK_SQS_PREFER_JSON_PROTOCOL: 'false'
+      SKIP_AUTH: 'false'
+      DEV_USER_ID: 11111111-1111-1111-1111-111111111111
+      DEV_USER_EMAIL: local@example.com
+    ports:
+      - '4000:4000'
+    depends_on:
+      db:
+        condition: service_healthy
+      localstack:
+        condition: service_started
+
+  client:
+    build:
+      context: ./client
+    ports:
+      - '5173:80'
+    depends_on:
+      - api
+
+  localstack:
+    image: localstack/localstack:3.6
+    environment:
+      SERVICES: sqs,s3,ses
+      DEFAULT_REGION: us-west-2
+      SQS_ENDPOINT_STRATEGY: path
+      HOSTNAME: localstack
+      HOSTNAME_EXTERNAL: localstack
+      LOCALSTACK_HOSTNAME: localstack
+      LOCALSTACK_HOST: localstack
+    ports:
+      - '4566:4566'
+
+volumes:
+  postgres_data:

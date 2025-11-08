@@ -1,0 +1,117 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  cognitoSub String   @unique
+  workflows  Workflow[]
+  createdAt  DateTime @default(now())
+}
+
+model Workflow {
+  id          String     @id @default(uuid())
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  name        String
+  status      WorkflowStatus @default(inactive)
+  description String?
+  steps       Step[]
+  triggers    Trigger[]
+  runs        Run[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Step {
+  id          String   @id @default(uuid())
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflowId  String
+  idx         Int
+  type        StepType
+  actionKind  ActionKind
+  config      Json
+
+  @@unique([workflowId, idx])
+}
+
+model Trigger {
+  id         String       @id @default(uuid())
+  workflow   Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflowId String
+  kind       TriggerKind
+  config     Json
+  createdAt  DateTime     @default(now())
+}
+
+model Run {
+  id            String    @id @default(uuid())
+  workflow      Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflowId    String
+  trigger       Trigger?  @relation(fields: [triggerId], references: [id])
+  triggerId     String?
+  status        RunStatus
+  startedAt     DateTime?
+  endedAt       DateTime?
+  inputPayload  Json?
+  resultPayload Json?
+  error         String?
+  steps         RunStep[]
+
+  @@index([workflowId, startedAt])
+}
+
+model RunStep {
+  id        String      @id @default(uuid())
+  run       Run         @relation(fields: [runId], references: [id], onDelete: Cascade)
+  runId     String
+  stepIdx   Int
+  status    RunStepStatus
+  startedAt DateTime?
+  endedAt   DateTime?
+  input     Json?
+  output    Json?
+  error     String?
+}
+
+enum WorkflowStatus {
+  active
+  inactive
+}
+
+enum StepType {
+  action
+}
+
+enum ActionKind {
+  send_email
+  http_request
+  write_s3
+}
+
+enum TriggerKind {
+  schedule
+  webhook
+}
+
+enum RunStatus {
+  queued
+  running
+  success
+  failed
+  canceled
+}
+
+enum RunStepStatus {
+  pending
+  running
+  success
+  failed
+  skipped
+}

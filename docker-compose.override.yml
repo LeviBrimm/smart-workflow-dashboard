@@ -1,0 +1,48 @@
+services:
+  worker:
+    build:
+      context: ./api
+    command: npm run worker
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgres://postgres:postgres@db:5432/workflows
+      PG_SSL: 'false'
+      PG_POOL_MAX: 10
+      REGION: us-west-2
+      SQS_QUEUE_URL: http://localstack:4566/queue/us-west-2/000000000000/workflow-runs
+      SQS_ENDPOINT: http://localstack:4566
+      S3_ENDPOINT: http://localstack:4566
+      S3_ARTIFACT_BUCKET: workflow-artifacts-dev
+      SES_SENDER: noreply@example.com
+      SES_ENDPOINT: http://localstack:4566
+      SES_CONFIGURATION_SET: ''
+      AWS_ACCESS_KEY_ID: localstack
+      AWS_SECRET_ACCESS_KEY: localstack
+      AWS_SDK_SQS_PREFER_JSON_PROTOCOL: 'false'
+    depends_on:
+      - db
+      - localstack
+  scheduler:
+    build:
+      context: ./api
+    command: node dist/scripts/runScheduler.js
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgres://postgres:postgres@db:5432/workflows
+      PG_SSL: 'false'
+      PG_POOL_MAX: 10
+      REGION: us-west-2
+      SQS_QUEUE_URL: http://localstack:4566/queue/us-west-2/000000000000/workflow-runs
+      SQS_ENDPOINT: http://localstack:4566
+      S3_ENDPOINT: http://localstack:4566
+      S3_ARTIFACT_BUCKET: workflow-artifacts-dev
+      SES_SENDER: noreply@example.com
+      SES_ENDPOINT: http://localstack:4566
+      SES_CONFIGURATION_SET: ''
+      AWS_ACCESS_KEY_ID: localstack
+      AWS_SECRET_ACCESS_KEY: localstack
+      AWS_SDK_SQS_PREFER_JSON_PROTOCOL: 'false'
+      SCHEDULER_INTERVAL_MS: 60000
+    depends_on:
+      - db
+      - localstack

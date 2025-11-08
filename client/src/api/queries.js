@@ -1,0 +1,79 @@
+import axios from 'axios';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '../store/authStore.js';
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE ?? 'http://localhost:4000/v1',
+  withCredentials: true,
+});
+
+api.interceptors.request.use(config => {
+  const token = useAuthStore.getState().tokens?.idToken;
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  response => response,
+  async error => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest?._retry) {
+      originalRequest._retry = true;
+      try {
+        await useAuthStore.getState().refreshSession();
+        const newToken = useAuthStore.getState().tokens?.idToken;
+        if (newToken) {
+          originalRequest.headers = originalRequest.headers ?? {};
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        }
+        return api(originalRequest);
+      } catch {
+        useAuthStore.getState().logout();
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const useWorkflowsQuery = () =>
+  useQuery({ queryKey: ['workflows'], queryFn: async () => (await api.get('/workflows')).data });
+
+export const useWorkflowDetailQuery = workflowId =>
+  useQuery({
+    queryKey: ['workflows', workflowId],
+    queryFn: async () => (await api.get(`/workflows/${workflowId}`)).data,
+    enabled: Boolean(workflowId),
+  });
+
+export const useCreateWorkflowMutation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: payload => api.post('/workflows', payload).then(res => res.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['workflows'] }),
+  });
+};
+
+export const useDeleteWorkflowMutation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: workflowId => api.delete(`/workflows/${workflowId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['workflows'] }),
+  });
+};
+
+export const useRunHistoryQuery = workflowId =>
+  useQuery({
+    queryKey: ['runs', workflowId],
+    queryFn: async () => (await api.get(`/workflows/${workflowId}/runs`)).data,
+    enabled: Boolean(workflowId),
+  });
+
+export const useRunDetailQuery = runId =>
+  useQuery({
+    queryKey: ['run', runId],
+    queryFn: async () => (await api.get(`/runs/${runId}`)).data,
+    enabled: Boolean(runId),
+  });

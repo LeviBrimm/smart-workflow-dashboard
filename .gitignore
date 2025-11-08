@@ -41,6 +41,16 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Build output
+dist/
+client/dist/
+api/dist/
+lambdas/**/dist/
+
+# Python cache for tooling
+__pycache__/
+*.pyc
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 
