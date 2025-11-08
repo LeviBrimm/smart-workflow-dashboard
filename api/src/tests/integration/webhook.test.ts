@@ -43,28 +43,45 @@ const userIdLiteral = sqlLiteral(testUser.id);
 const userEmailLiteral = sqlLiteral(testUser.email);
 const userCognitoSubLiteral = sqlLiteral(testUser.cognitoSub);
 
-test('webhook triggers workflow run', async () => {
-  // seed workflow
-runSql(`
+type StepAction = 'write_s3' | 'http_request' | 'send_email';
+
+const seedWebhookWorkflow = ({
+  workflowId,
+  triggerId,
+  secret,
+  stepId,
+  stepAction,
+  stepConfigSql,
+  name = 'Test Flow',
+}: {
+  workflowId: string;
+  triggerId: string;
+  secret: string;
+  stepId: string;
+  stepAction: StepAction;
+  stepConfigSql: string;
+  name?: string;
+}) => {
+  runSql(`
     INSERT INTO users (id, email, cognito_sub)
     VALUES ('${userIdLiteral}', '${userEmailLiteral}', '${userCognitoSubLiteral}')
     ON CONFLICT (id) DO NOTHING;
 
     INSERT INTO workflows (id, user_id, name, status)
-    VALUES ('00000000-0000-0000-0000-000000000001', '${userIdLiteral}', 'Test Flow', 'active')
+    VALUES ('${workflowId}', '${userIdLiteral}', '${sqlLiteral(name)}', 'active')
     ON CONFLICT (id) DO UPDATE
       SET user_id = EXCLUDED.user_id,
           name = EXCLUDED.name,
           status = EXCLUDED.status;
 
     INSERT INTO triggers (id, workflow_id, kind, config)
-    VALUES ('11111111-2222-3333-4444-555555555555', '00000000-0000-0000-0000-000000000001', 'webhook', jsonb_build_object('secret','local-secret'))
+    VALUES ('${triggerId}', '${workflowId}', 'webhook', jsonb_build_object('secret','${sqlLiteral(secret)}'))
     ON CONFLICT (id) DO UPDATE
       SET workflow_id = EXCLUDED.workflow_id,
           config = EXCLUDED.config;
 
     INSERT INTO steps (id, workflow_id, idx, type, action_kind, config)
-    VALUES ('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', '00000000-0000-0000-0000-000000000001', 0, 'action', 'write_s3', jsonb_build_object('key','runs/test-run.json'))
+    VALUES ('${stepId}', '${workflowId}', 0, 'action', '${stepAction}', ${stepConfigSql})
     ON CONFLICT (id) DO UPDATE
       SET workflow_id = EXCLUDED.workflow_id,
           idx = EXCLUDED.idx,
@@ -72,38 +89,90 @@ runSql(`
           action_kind = EXCLUDED.action_kind,
           config = EXCLUDED.config;
   `);
+};
 
-  const body = JSON.stringify({ payload: 'demo' });
-  const signature = crypto.createHmac('sha256', 'local-secret').update(body).digest('hex');
+const getAuthHeaders = (): Record<string, string> => {
+  const raw = process.env.TEST_ID_TOKEN ?? '';
+  const token = raw.replace(/[^A-Za-z0-9._-]/g, '');
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+};
 
-  const response = await fetch(`${BASE_URL}/webhook/11111111-2222-3333-4444-555555555555`, {
+type RunDetailResponse = {
+  run: { status: string; error?: string };
+  steps: Array<{ status: string; error?: string }>;
+};
+
+const waitForRunCompletion = async (runId: string) => {
+  let attempt = 0;
+  let lastDetail: RunDetailResponse | null = null;
+  while (attempt < 20) {
+    const res = await fetch(`${BASE_URL}/runs/${runId}`, {
+      headers: getAuthHeaders(),
+    });
+    if (res.status === 200) {
+      lastDetail = (await res.json()) as RunDetailResponse;
+      const status = lastDetail.run.status;
+      if (status === 'success' || status === 'failed') {
+        return lastDetail;
+      }
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    attempt += 1;
+  }
+  throw new Error(`Run did not complete. Last status: ${lastDetail?.run.status ?? 'unknown'}`);
+};
+
+const invokeWebhook = async (triggerId: string, secret: string, body: Record<string, unknown> = { payload: 'demo' }) => {
+  const jsonBody = JSON.stringify(body);
+  const signature = crypto.createHmac('sha256', secret).update(jsonBody).digest('hex');
+
+  const response = await fetch(`${BASE_URL}/webhook/${triggerId}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-Signature': signature,
     },
-    body,
+    body: jsonBody,
   });
 
   assert.equal(response.status, 200, 'webhook should respond 200');
-  const json = (await response.json()) as { runId: string };
-  assert.ok(json.runId, 'run id should be returned');
+  return (await response.json()) as { runId: string };
+};
 
-  // wait for worker to mark run success
-  let attempt = 0;
-  let status = '';
-  while (attempt < 20) {
-    const res = await fetch(`${BASE_URL}/runs/${json.runId}`, {
-      headers: { Authorization: `Bearer ${process.env.TEST_ID_TOKEN ?? ''}` },
-    });
-    if (res.status === 200) {
-      const detail = (await res.json()) as { run: { status: string } };
-      status = detail.run.status;
-      if (status === 'success' || status === 'failed') break;
-    }
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    attempt += 1;
-  }
+test('webhook triggers workflow run', async () => {
+  seedWebhookWorkflow({
+    workflowId: '00000000-0000-0000-0000-000000000001',
+    triggerId: '11111111-2222-3333-4444-555555555555',
+    secret: 'local-secret',
+    stepId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+    stepAction: 'write_s3',
+    stepConfigSql: "jsonb_build_object('key','runs/test-run.json')",
+  });
 
-  assert.equal(status, 'success', 'run should complete successfully');
+  const { runId } = await invokeWebhook('11111111-2222-3333-4444-555555555555', 'local-secret');
+  const detail = await waitForRunCompletion(runId);
+
+  assert.equal(detail.run.status, 'success', 'run should complete successfully');
+  assert.equal(detail.steps[0]?.status, 'success', 'step should succeed');
+});
+
+test('webhook run surfaces failure when step executor throws', async () => {
+  seedWebhookWorkflow({
+    workflowId: '00000000-0000-0000-0000-000000000002',
+    triggerId: 'aaaaaaaa-bbbb-cccc-dddd-ffffffffffff',
+    secret: 'failure-secret',
+    stepId: 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff',
+    stepAction: 'http_request',
+    stepConfigSql: "jsonb_build_object('url','http://127.0.0.1:9/fail')",
+    name: 'Failure Flow',
+  });
+
+  const { runId } = await invokeWebhook('aaaaaaaa-bbbb-cccc-dddd-ffffffffffff', 'failure-secret');
+  const detail = await waitForRunCompletion(runId);
+
+  assert.equal(detail.run.status, 'failed', 'run should be marked failed');
+  assert.ok(detail.run.error, 'run error should be populated');
+  assert.equal(detail.steps[0]?.status, 'failed', 'step should be marked failed');
+  assert.ok(detail.steps[0]?.error, 'step error should be populated');
 });
