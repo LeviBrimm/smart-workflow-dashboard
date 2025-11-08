@@ -73,6 +73,21 @@ Open http://localhost:5173, click “Login,” complete the Cognito hosted flow,
 
 > Tip: `npm run bootstrap:localstack` rewrites the `localstack` hostname to `localhost` so it can talk to the compose stack from your host OS. If you ever run it inside a container, set `LOCALSTACK_HOST_OVERRIDE=localstack` so it keeps the internal service name.
 
+### Integration testing
+
+1. Start the full stack (`docker compose up -d --build`) so Postgres, Localstack, API, worker, etc. are running locally.
+2. From `api/`, bootstrap the Localstack queue and bucket: `npm run bootstrap:localstack`. This is idempotent, so run it whenever Localstack restarts.
+3. Execute the end-to-end webhook test:
+   ```bash
+   cd api
+   API_BASE=http://localhost:4000/v1 \
+   DATABASE_URL=postgres://postgres:postgres@localhost:5433/workflows \
+   TEST_ID_TOKEN='<cognito id token>' \
+   npm run test:integration
+   ```
+   The `TEST_ID_TOKEN` lets the test poll `/v1/runs/:id` with Cognito auth; if you prefer to bypass auth locally, set `SKIP_AUTH=true` in `.env` instead.
+4. CI runs the same script in `.github/workflows/ci.yml` (with `SKIP_AUTH=true`), so any failure locally will match what GitHub Actions reports.
+
 ## CI & tests
 
 - `api`: ESLint, `tsc --noEmit`, and Node’s built-in test runner (`npm test`) run in GitHub Actions. Tests cover cron helpers and the templating engine that powers step configs.
