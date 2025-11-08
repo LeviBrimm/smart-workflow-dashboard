@@ -47,7 +47,7 @@ export const listWorkflowRuns = async (
     result_payload: Record<string, unknown> | null;
   };
   const result = await pool.query<RunRow>(sql, params);
-  return result.rows.map(
+  const items = result.rows.map(
     (row): RunRecord => ({
       id: row.id,
       workflowId: row.workflow_id,
@@ -61,6 +61,12 @@ export const listWorkflowRuns = async (
       resultPayload: row.result_payload ?? undefined,
     })
   );
+
+  const last = result.rows[result.rows.length - 1];
+  const nextCursor =
+    result.rows.length === limit && last?.started_at ? last.started_at : undefined;
+
+  return { items, nextCursor };
 };
 
 export const getRunDetail = async (id: string, userId?: string) => {

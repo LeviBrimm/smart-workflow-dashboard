@@ -52,9 +52,9 @@ router.get('/:id/runs', async (req, res) => {
   const runs = await listWorkflowRuns(
     req.params.id,
     req.user?.id,
-    req.query.status as string | undefined,
+    (req.query.status as string | undefined) || undefined,
     req.query.limit ? Number(req.query.limit) : undefined,
-    req.query.cursor as string | undefined
+    (req.query.cursor as string | undefined) || undefined
   );
   res.json(runs);
 });
