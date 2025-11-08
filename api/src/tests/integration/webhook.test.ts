@@ -86,7 +86,7 @@ runSql(`
   });
 
   assert.equal(response.status, 200, 'webhook should respond 200');
-  const json = await response.json();
+  const json = (await response.json()) as { runId: string };
   assert.ok(json.runId, 'run id should be returned');
 
   // wait for worker to mark run success
@@ -97,7 +97,7 @@ runSql(`
       headers: { Authorization: `Bearer ${process.env.TEST_ID_TOKEN ?? ''}` },
     });
     if (res.status === 200) {
-      const detail = await res.json();
+      const detail = (await res.json()) as { run: { status: string } };
       status = detail.run.status;
       if (status === 'success' || status === 'failed') break;
     }
