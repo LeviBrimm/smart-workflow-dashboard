@@ -12,7 +12,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
     "start": "node dist/app.js",
-    "lint": "eslint . --ext .ts",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts",
     "worker": "npm run build && node dist/scripts/runWorker.js",
     "scheduler": "tsx --env-file .env src/scripts/runScheduler.ts",
     "scheduler:once": "SCHEDULER_RUN_ONCE=true npm run scheduler",
