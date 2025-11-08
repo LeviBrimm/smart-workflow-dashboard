@@ -13,9 +13,9 @@
     "typecheck": "tsc --noEmit",
     "start": "node dist/app.js",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts",
-    "bootstrap:localstack": "tsx --env-file .env src/scripts/bootstrapLocalstack.ts",
+    "bootstrap:localstack": "tsx src/scripts/bootstrapLocalstack.ts",
     "worker": "npm run build && node dist/scripts/runWorker.js",
-    "scheduler": "tsx --env-file .env src/scripts/runScheduler.ts",
+    "scheduler": "tsx src/scripts/runScheduler.ts",
     "scheduler:once": "SCHEDULER_RUN_ONCE=true npm run scheduler",
     "test": "node --import tsx --test src/**/*.test.ts",
     "test:integration": "npm run bootstrap:localstack && node --import tsx --test src/tests/integration/**/*.test.ts"
