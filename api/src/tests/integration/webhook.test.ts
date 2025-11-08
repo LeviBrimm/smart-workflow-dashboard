@@ -91,7 +91,7 @@ const seedWebhookWorkflow = ({
   `);
 };
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (): Record<string, string> => {
   const raw = process.env.TEST_ID_TOKEN ?? '';
   const token = raw.replace(/[^A-Za-z0-9._-]/g, '');
   if (!token) return {};
