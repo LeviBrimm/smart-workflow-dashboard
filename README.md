@@ -67,8 +67,11 @@ Open http://localhost:5173, click “Login,” complete the Cognito hosted flow,
 | Scheduler (single tick)           | `cd api && npm run scheduler:once` |
 | Worker (local loop)               | `cd api && npm run worker` |
 | API typecheck / lint / test       | `cd api && npm run typecheck && npm run lint && npm test` |
+| Bootstrap Localstack resources    | `cd api && npm run bootstrap:localstack` |
 | Client build                      | `cd client && npm run build` |
 | Reset schema                      | `psql $DATABASE_URL -f api/src/workflows/schema.sql` |
+
+> Tip: `npm run bootstrap:localstack` rewrites the `localstack` hostname to `localhost` so it can talk to the compose stack from your host OS. If you ever run it inside a container, set `LOCALSTACK_HOST_OVERRIDE=localstack` so it keeps the internal service name.
 
 ## CI & tests
 

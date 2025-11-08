@@ -43,7 +43,7 @@ services:
       AWS_ACCESS_KEY_ID: localstack
       AWS_SECRET_ACCESS_KEY: localstack
       AWS_SDK_SQS_PREFER_JSON_PROTOCOL: 'false'
-      SKIP_AUTH: 'false'
+      SKIP_AUTH: ${SKIP_AUTH:-false}
       DEV_USER_ID: 11111111-1111-1111-1111-111111111111
       DEV_USER_EMAIL: local@example.com
     ports:
