@@ -10,3 +10,13 @@ export const isDue = (cronExpr: string, referenceDate = new Date()): boolean => 
     return false;
   }
 };
+
+export const getNextRun = (cronExpr: string, referenceDate = new Date()): string | undefined => {
+  try {
+    const interval = parser.parseExpression(cronExpr, { currentDate: referenceDate });
+    return interval.next().toDate().toISOString();
+  } catch (error) {
+    console.warn('Invalid cron expression', cronExpr, error);
+    return undefined;
+  }
+};

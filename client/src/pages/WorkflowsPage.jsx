@@ -1,5 +1,6 @@
 import WorkflowTable from '../components/WorkflowTable.jsx';
 import WorkflowForm from '../components/WorkflowForm.jsx';
+import ScheduleOverview from '../components/ScheduleOverview.jsx';
 import { useWorkflowsQuery } from '../api/queries.js';
 
 const WorkflowsPage = () => {
@@ -13,7 +14,16 @@ const WorkflowsPage = () => {
           <h1 className="text-2xl font-semibold text-white">Workflows</h1>
         </div>
       </header>
-      {isLoading ? <p>Loading…</p> : <WorkflowTable workflows={data ?? []} />}
+      {isLoading ? (
+        <p>Loading…</p>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <WorkflowTable workflows={data ?? []} />
+          </div>
+          <ScheduleOverview />
+        </div>
+      )}
       <section>
         <h2 className="mb-3 text-xl font-semibold">New Workflow</h2>
         <WorkflowForm />

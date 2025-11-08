@@ -3,6 +3,7 @@ import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { pool } from '../lib/db.js';
 import { createSignature } from '../lib/hmac.js';
 import type { RunEnvelope } from './execution.service.js';
+import { getNextRun } from '../lib/cron.js';
 
 const queueUrl = process.env.SQS_QUEUE_URL;
 const sqsEndpoint = process.env.SQS_ENDPOINT;
@@ -23,6 +24,13 @@ const ensureQueue = () => {
     throw new Error('SQS queue not configured');
   }
   return { queueUrl, sqsClient };
+};
+
+const ensureUser = (userId?: string) => {
+  if (!userId) {
+    throw new Error('User context required');
+  }
+  return userId;
 };
 
 export const enqueueRun = async (payload: RunEnvelope) => {
@@ -56,4 +64,45 @@ export const verifyWebhookRequest = async (triggerId: string, rawBody: string, s
     return false;
   }
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+};
+
+type ScheduleTriggerRow = {
+  id: string;
+  workflow_id: string;
+  kind: string;
+  config: { cron?: string };
+  workflow_name: string;
+  workflow_status: string;
+};
+
+export type ScheduleTriggerSummary = {
+  id: string;
+  workflowId: string;
+  workflowName: string;
+  workflowStatus: string;
+  cron?: string;
+  nextRunAt?: string;
+};
+
+export const listScheduleTriggers = async (userId?: string): Promise<ScheduleTriggerSummary[]> => {
+  const ownerId = ensureUser(userId);
+  const result = await pool.query<ScheduleTriggerRow>(
+    `SELECT t.id, t.workflow_id, t.kind, t.config, w.name as workflow_name, w.status as workflow_status
+     FROM triggers t
+     JOIN workflows w ON w.id = t.workflow_id
+     WHERE t.kind = 'schedule' AND w.user_id = $1`,
+    [ownerId]
+  );
+
+  return result.rows.map(row => {
+    const cronExpr = typeof row.config?.cron === 'string' ? row.config.cron : undefined;
+    return {
+      id: row.id,
+      workflowId: row.workflow_id,
+      workflowName: row.workflow_name,
+      workflowStatus: row.workflow_status,
+      cron: cronExpr,
+      nextRunAt: cronExpr ? getNextRun(cronExpr) : undefined,
+    };
+  });
 };
