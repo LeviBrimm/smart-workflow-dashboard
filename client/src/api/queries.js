@@ -84,3 +84,9 @@ export const useRunDetailQuery = runId =>
     queryFn: async () => (await api.get(`/runs/${runId}`)).data,
     enabled: Boolean(runId),
   });
+
+export const useScheduleTriggersQuery = () =>
+  useQuery({
+    queryKey: ['schedule-triggers'],
+    queryFn: async () => (await api.get('/triggers/schedules')).data,
+  });

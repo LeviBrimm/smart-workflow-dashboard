@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { enqueueRun, getTriggerWithSecret } from '../services/trigger.service.js';
+import { enqueueRun, getTriggerWithSecret, listScheduleTriggers } from '../services/trigger.service.js';
 import { createRunForTrigger } from '../services/execution.service.js';
 
 const router = Router();
@@ -14,6 +14,11 @@ router.post('/:id/test', async (req, res) => {
   await enqueueRun(runEnvelope);
 
   res.json({ message: 'Trigger test enqueued', runId: runEnvelope.runId });
+});
+
+router.get('/schedules', async (req, res) => {
+  const schedules = await listScheduleTriggers(req.user?.id);
+  res.json(schedules);
 });
 
 export default router;
