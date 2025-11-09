@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';
+import ToastContainer from './ToastContainer.jsx';
 
 const navLinkClass = ({ isActive }) =>
   `rounded-md px-3 py-2 text-sm font-medium ${
@@ -18,7 +19,7 @@ const Layout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f2ebe3] text-[#1f1c1a]">
+    <div className="relative min-h-screen bg-[#f2ebe3] text-[#1f1c1a]">
       <header className="border-b border-[#dbcbb9] bg-white/80 shadow-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link to="/workflows" className="text-lg font-semibold text-[#1f1c1a]">
@@ -51,6 +52,7 @@ const Layout = () => {
       <main className="mx-auto max-w-6xl px-6 py-8">
         <Outlet />
       </main>
+      <ToastContainer />
     </div>
   );
 };

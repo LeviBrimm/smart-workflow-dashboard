@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useDeleteWorkflowMutation, useToggleWorkflowStatusMutation } from '../api/queries.js';
+import { useToastStore } from '../store/toastStore.js';
 
 const statusColors = {
   active: 'text-emerald-700 bg-emerald-100',
@@ -9,13 +10,16 @@ const statusColors = {
 const WorkflowTable = ({ workflows = [] }) => {
   const { mutateAsync: deleteWorkflow, isPending } = useDeleteWorkflowMutation();
   const toggleStatus = useToggleWorkflowStatusMutation();
+  const pushToast = useToastStore(state => state.pushToast);
 
   const handleDelete = async workflow => {
     if (!window.confirm(`Delete workflow "${workflow.name}"? This cannot be undone.`)) return;
     try {
       await deleteWorkflow(workflow.id);
+      pushToast({ title: 'Workflow deleted', variant: 'info' });
     } catch (error) {
       console.error('Delete failed', error);
+      pushToast({ title: 'Delete failed', message: 'Please try again.', variant: 'error' });
     }
   };
 
@@ -49,10 +53,24 @@ const WorkflowTable = ({ workflows = [] }) => {
                 <button
                   className="rounded-full border border-[#d9cabc] px-3 py-1 text-xs font-medium text-[#5c3d2e] hover:bg-[#f4ece3] disabled:text-stone-400"
                   onClick={() =>
-                    toggleStatus.mutate({
-                      workflowId: workflow.id,
-                      status: workflow.status === 'active' ? 'inactive' : 'active',
-                    })
+                    toggleStatus.mutate(
+                      {
+                        workflowId: workflow.id,
+                        status: workflow.status === 'active' ? 'inactive' : 'active',
+                      },
+                      {
+                        onSuccess: () =>
+                          pushToast({
+                            title: workflow.status === 'active' ? 'Workflow deactivated' : 'Workflow activated',
+                          }),
+                        onError: () =>
+                          pushToast({
+                            title: 'Unable to update workflow',
+                            message: 'Please try again.',
+                            variant: 'error',
+                          }),
+                      }
+                    )
                   }
                   disabled={toggleStatus.isPending}
                 >

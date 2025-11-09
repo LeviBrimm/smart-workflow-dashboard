@@ -1,8 +1,10 @@
 import { useFieldArray, useForm } from 'react-hook-form';
 import { useUpdateWorkflowMutation } from '../api/queries.js';
+import { useToastStore } from '../store/toastStore.js';
 
 const WorkflowEditor = ({ workflow, disabled }) => {
   const mutation = useUpdateWorkflowMutation();
+  const pushToast = useToastStore(state => state.pushToast);
   const {
     register,
     handleSubmit,
@@ -30,23 +32,29 @@ const WorkflowEditor = ({ workflow, disabled }) => {
 
   const onSubmit = async values => {
     if (disabled) return;
-    await mutation.mutateAsync({
-      workflowId: workflow.id,
-      payload: {
-        name: values.name,
-        description: values.description,
-        steps: values.steps.map((step, idx) => ({
-          idx,
-          actionKind: step.actionKind,
-          config: JSON.parse(step.config || '{}'),
-        })),
-        triggers: values.triggers.map(trigger => ({
-          kind: trigger.kind,
-          config: JSON.parse(trigger.config || '{}'),
-        })),
-      },
-    });
-    reset(values);
+    try {
+      await mutation.mutateAsync({
+        workflowId: workflow.id,
+        payload: {
+          name: values.name,
+          description: values.description,
+          steps: values.steps.map((step, idx) => ({
+            idx,
+            actionKind: step.actionKind,
+            config: JSON.parse(step.config || '{}'),
+          })),
+          triggers: values.triggers.map(trigger => ({
+            kind: trigger.kind,
+            config: JSON.parse(trigger.config || '{}'),
+          })),
+        },
+      });
+      reset(values);
+      pushToast({ title: 'Workflow updated', variant: 'success' });
+    } catch (error) {
+      console.error(error);
+      pushToast({ title: 'Update failed', message: 'Please try again.', variant: 'error' });
+    }
   };
 
   return (
