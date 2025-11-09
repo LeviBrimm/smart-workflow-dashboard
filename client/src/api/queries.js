@@ -64,6 +64,29 @@ export const useDeleteWorkflowMutation = () => {
   });
 };
 
+export const useUpdateWorkflowMutation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ workflowId, payload }) => api.put(`/workflows/${workflowId}`, payload).then(res => res.data),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['workflows'] });
+      qc.invalidateQueries({ queryKey: ['workflows', variables.workflowId] });
+    },
+  });
+};
+
+export const useToggleWorkflowStatusMutation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ workflowId, status }) =>
+      api.post(`/workflows/${workflowId}/${status === 'active' ? 'activate' : 'deactivate'}`).then(res => res.data),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['workflows'] });
+      qc.invalidateQueries({ queryKey: ['workflows', variables.workflowId] });
+    },
+  });
+};
+
 export const useWorkflowRunsQuery = ({ workflowId, status, limit = 10 }) =>
   useInfiniteQuery({
     queryKey: ['runs', workflowId, status],

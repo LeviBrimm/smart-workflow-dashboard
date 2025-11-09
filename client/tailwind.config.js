@@ -4,8 +4,10 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#6366f1',
-        surface: '#0f172a',
+        primary: '#5c3d2e',
+        ink: '#1f1c1a',
+        sand: '#f5f1eb',
+        cocoa: '#7a4f36',
       },
     },
   },
