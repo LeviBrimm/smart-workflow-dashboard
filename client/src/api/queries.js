@@ -108,6 +108,17 @@ export const useRunDetailQuery = runId =>
     enabled: Boolean(runId),
   });
 
+export const useCancelRunMutation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: runId => api.post(`/runs/${runId}/cancel`).then(res => res.data),
+    onSuccess: (_data, runId) => {
+      qc.invalidateQueries({ queryKey: ['runs'] });
+      qc.invalidateQueries({ queryKey: ['run', runId] });
+    },
+  });
+};
+
 export const useScheduleTriggersQuery = () =>
   useQuery({
     queryKey: ['schedule-triggers'],

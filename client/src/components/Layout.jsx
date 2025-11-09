@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';
-import ToastContainer from './ToastContainer.jsx';
+import { Toaster } from 'react-hot-toast';
 
 const navLinkClass = ({ isActive }) =>
   `rounded-md px-3 py-2 text-sm font-medium ${
@@ -52,7 +52,17 @@ const Layout = () => {
       <main className="mx-auto max-w-6xl px-6 py-8">
         <Outlet />
       </main>
-      <ToastContainer />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: '#fff',
+            color: '#1f1c1a',
+            borderRadius: '16px',
+            border: '1px solid #e3d8cb',
+          },
+        }}
+      />
     </div>
   );
 };
