@@ -50,19 +50,29 @@ const WorkflowForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="card flex flex-col gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="card flex flex-col gap-4 bg-white text-[#1f1c1a]">
       <div>
-        <label className="text-sm text-slate-300">Name</label>
-        <input className="mt-1 w-full rounded-md border border-slate-800 bg-slate-900 px-3 py-2" {...register('name')} />
+        <label className="text-sm text-[#7a6a5d]">Name</label>
+        <input
+          className="mt-1 w-full rounded-md border border-[#d9cabc] bg-white px-3 py-2 text-[#1f1c1a] focus:border-[#b28967] focus:outline-none"
+          {...register('name')}
+        />
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className="text-sm text-slate-300">Description</label>
-          <textarea className="mt-1 w-full rounded-md border border-slate-800 bg-slate-900 px-3 py-2" rows={2} {...register('description')} />
+          <label className="text-sm text-[#7a6a5d]">Description</label>
+          <textarea
+            className="mt-1 w-full rounded-md border border-[#d9cabc] bg-white px-3 py-2 text-[#1f1c1a] focus:border-[#b28967] focus:outline-none"
+            rows={2}
+            {...register('description')}
+          />
         </div>
         <div>
-          <label className="text-sm text-slate-300">Status</label>
-          <select className="mt-1 w-full rounded-md border border-slate-800 bg-slate-900 px-3 py-2" {...register('status')}>
+          <label className="text-sm text-[#7a6a5d]">Status</label>
+          <select
+            className="mt-1 w-full rounded-md border border-[#d9cabc] bg-white px-3 py-2 text-[#1f1c1a] focus:border-[#b28967] focus:outline-none"
+            {...register('status')}
+          >
             <option value="inactive">Inactive</option>
             <option value="active">Active</option>
           </select>
@@ -70,16 +80,23 @@ const WorkflowForm = () => {
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className="text-sm text-slate-300">Steps</label>
+          <label className="text-sm text-[#7a6a5d]">Steps</label>
           <div className="mt-2 flex flex-col gap-3">
             {steps.fields.map((field, index) => (
-              <div key={field.id} className="rounded border border-slate-800 p-3">
-                <select className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1" {...register(`steps.${index}.actionKind`)}>
+              <div key={field.id} className="rounded-2xl border border-[#e0d4c6] bg-white/70 p-3 shadow-inner">
+                <select
+                  className="w-full rounded border border-[#d9cabc] bg-white px-2 py-1 text-[#1f1c1a] focus:border-[#b28967] focus:outline-none"
+                  {...register(`steps.${index}.actionKind`)}
+                >
                   <option value="http_request">HTTP Request</option>
                   <option value="send_email">Send Email</option>
                   <option value="write_s3">Write to S3</option>
                 </select>
-                <textarea className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs" rows={3} {...register(`steps.${index}.config`)} />
+                <textarea
+                  className="mt-2 w-full rounded border border-[#d9cabc] bg-white px-2 py-1 text-xs text-[#1f1c1a] focus:border-[#b28967] focus:outline-none"
+                  rows={3}
+                  {...register(`steps.${index}.config`)}
+                />
               </div>
             ))}
             <button type="button" className="btn-primary" onClick={() => steps.append({ actionKind: 'http_request', config: '{"url":"https://example.com"}' })}>
@@ -88,15 +105,22 @@ const WorkflowForm = () => {
           </div>
         </div>
         <div>
-          <label className="text-sm text-slate-300">Triggers</label>
+          <label className="text-sm text-[#7a6a5d]">Triggers</label>
           <div className="mt-2 flex flex-col gap-3">
             {triggers.fields.map((field, index) => (
-              <div key={field.id} className="rounded border border-slate-800 p-3">
-                <select className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1" {...register(`triggers.${index}.kind`)}>
+              <div key={field.id} className="rounded-2xl border border-[#e0d4c6] bg-white/70 p-3 shadow-inner">
+                <select
+                  className="w-full rounded border border-[#d9cabc] bg-white px-2 py-1 text-[#1f1c1a] focus:border-[#b28967] focus:outline-none"
+                  {...register(`triggers.${index}.kind`)}
+                >
                   <option value="schedule">Schedule</option>
                   <option value="webhook">Webhook</option>
                 </select>
-                <textarea className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs" rows={3} {...register(`triggers.${index}.config`)} />
+                <textarea
+                  className="mt-2 w-full rounded border border-[#d9cabc] bg-white px-2 py-1 text-xs text-[#1f1c1a] focus:border-[#b28967] focus:outline-none"
+                  rows={3}
+                  {...register(`triggers.${index}.config`)}
+                />
               </div>
             ))}
             <button type="button" className="btn-primary" onClick={() => triggers.append({ kind: 'schedule', config: '{"cron":"0 8 * * *"}' })}>

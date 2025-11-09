@@ -31,7 +31,7 @@ const CopyButton = ({ value, label }) => {
     <button
       type="button"
       onClick={handleCopy}
-      className="text-xs font-medium text-sky-400 hover:text-sky-200"
+      className="text-xs font-medium text-[#8c5a3c] hover:text-[#6a4229]"
     >
       {copied ? 'Copied!' : label}
     </button>
@@ -45,27 +45,27 @@ const TriggerItem = ({ trigger }) => {
   const cronExpr = isSchedule ? trigger.config?.cron : null;
 
   return (
-    <li className="rounded border border-slate-800/80 px-3 py-2 text-sm">
+    <li className="rounded-2xl border border-[#e0d4c6] bg-white/90 px-3 py-2 text-sm text-[#1f1c1a] shadow-inner">
       <div className="flex items-center justify-between gap-2">
-        <p className="font-medium capitalize">{trigger.kind}</p>
+        <p className="font-medium capitalize text-[#1f1c1a]">{trigger.kind}</p>
         <CopyButton value={trigger.id} label="Copy ID" />
       </div>
-      <p className="mt-1 break-all font-mono text-xs text-slate-400">ID: {trigger.id}</p>
+      <p className="mt-1 break-all font-mono text-xs text-[#7a6a5d]">ID: {trigger.id}</p>
       {isWebhook && (
         <div className="mt-2 space-y-1 text-xs">
-          <p className="text-slate-400">Webhook URL:</p>
+          <p className="text-[#7a6a5d]">Webhook URL:</p>
           <div className="flex items-center gap-2">
-            <span className="break-all font-mono text-slate-300">{webhookUrl}</span>
+            <span className="break-all font-mono text-[#5c3d2e]">{webhookUrl}</span>
             <CopyButton value={webhookUrl} label="Copy URL" />
           </div>
         </div>
       )}
       {isSchedule && cronExpr && (
-        <p className="mt-2 text-xs text-slate-300">
-          Cron: <span className="font-mono text-slate-200">{cronExpr}</span>
+        <p className="mt-2 text-xs text-[#7a6a5d]">
+          Cron: <span className="font-mono text-[#5c3d2e]">{cronExpr}</span>
         </p>
       )}
-      <pre className="mt-2 whitespace-pre-wrap rounded bg-slate-900/40 p-2 text-xs text-slate-400">
+      <pre className="mt-2 whitespace-pre-wrap rounded bg-[#f7f1ea] p-2 text-xs text-[#5c3d2e]">
         {JSON.stringify(trigger.config, null, 2)}
       </pre>
     </li>
@@ -73,7 +73,7 @@ const TriggerItem = ({ trigger }) => {
 };
 
 const TriggerList = ({ triggers = [] }) => (
-  <div className="card">
+  <div className="card bg-white text-[#1f1c1a]">
     <h3 className="mb-3 text-lg font-semibold">Triggers</h3>
     {triggers.length ? (
       <ul className="space-y-3 text-sm">
@@ -82,7 +82,7 @@ const TriggerList = ({ triggers = [] }) => (
         ))}
       </ul>
     ) : (
-      <p className="text-sm text-slate-500">No triggers configured.</p>
+      <p className="text-sm text-[#7a6a5d]">No triggers configured.</p>
     )}
   </div>
 );

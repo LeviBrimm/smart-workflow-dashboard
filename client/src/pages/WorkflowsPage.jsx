@@ -10,8 +10,8 @@ const WorkflowsPage = () => {
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <p className="text-sm uppercase tracking-wide text-slate-400">Overview</p>
-          <h1 className="text-2xl font-semibold text-white">Workflows</h1>
+          <p className="text-sm uppercase tracking-wide text-[#7a6a5d]">Overview</p>
+          <h1 className="text-2xl font-semibold text-[#1f1c1a]">Workflows</h1>
         </div>
       </header>
       {isLoading ? (

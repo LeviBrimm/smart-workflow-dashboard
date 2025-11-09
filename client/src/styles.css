@@ -2,18 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: dark;
-}
-
 body {
-  @apply bg-slate-950 text-slate-100 min-h-screen font-sans;
+  @apply min-h-screen font-sans bg-[#f2ebe3] text-[#1f1c1a];
 }
 
 .btn-primary {
-  @apply rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-500;
+  @apply rounded-md bg-[#5c3d2e] px-4 py-2 text-sm font-medium text-white shadow hover:bg-[#402a1f];
+}
+
+.btn-secondary {
+  @apply rounded-md border border-[#d9cabc] bg-white px-3 py-2 text-xs font-medium text-[#5c3d2e] shadow hover:bg-[#f1e7dd];
 }
 
 .card {
-  @apply rounded-xl border border-slate-800 bg-slate-900/70 p-4 shadow;
+  @apply rounded-3xl border border-[#e3d8cb] bg-white p-6 shadow-2xl shadow-[#d8c8ba]/70;
 }
