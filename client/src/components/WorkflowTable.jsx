@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useDeleteWorkflowMutation, useToggleWorkflowStatusMutation } from '../api/queries.js';
-import { useToastStore } from '../store/toastStore.js';
+import { toast } from 'react-hot-toast';
 
 const statusColors = {
   active: 'text-emerald-700 bg-emerald-100',
@@ -10,16 +10,15 @@ const statusColors = {
 const WorkflowTable = ({ workflows = [] }) => {
   const { mutateAsync: deleteWorkflow, isPending } = useDeleteWorkflowMutation();
   const toggleStatus = useToggleWorkflowStatusMutation();
-  const pushToast = useToastStore(state => state.pushToast);
 
   const handleDelete = async workflow => {
     if (!window.confirm(`Delete workflow "${workflow.name}"? This cannot be undone.`)) return;
     try {
       await deleteWorkflow(workflow.id);
-      pushToast({ title: 'Workflow deleted', variant: 'info' });
+      toast.success('Workflow deleted');
     } catch (error) {
       console.error('Delete failed', error);
-      pushToast({ title: 'Delete failed', message: 'Please try again.', variant: 'error' });
+      toast.error('Delete failed. Please try again.');
     }
   };
 
@@ -60,15 +59,10 @@ const WorkflowTable = ({ workflows = [] }) => {
                       },
                       {
                         onSuccess: () =>
-                          pushToast({
-                            title: workflow.status === 'active' ? 'Workflow deactivated' : 'Workflow activated',
-                          }),
-                        onError: () =>
-                          pushToast({
-                            title: 'Unable to update workflow',
-                            message: 'Please try again.',
-                            variant: 'error',
-                          }),
+                          workflow.status === 'active'
+                            ? toast.success('Workflow deactivated')
+                            : toast.success('Workflow activated'),
+                        onError: () => toast.error('Unable to update workflow'),
                       }
                     )
                   }

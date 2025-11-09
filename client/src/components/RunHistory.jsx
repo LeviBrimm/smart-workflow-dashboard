@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRunDetailQuery, useWorkflowRunsQuery } from '../api/queries.js';
+import { toast } from 'react-hot-toast';
+import { useRunDetailQuery, useWorkflowRunsQuery, useCancelRunMutation } from '../api/queries.js';
 
 const statusMeta = {
   success: { text: 'text-emerald-700', bg: 'bg-emerald-100', label: 'Success', icon: '✔' },
@@ -257,11 +258,22 @@ const RunHistory = ({ workflowId, initialStatus = 'all' }) => {
             <option value="queued">Queued</option>
           </select>
         </div>
-        {selectedRunId && (
-          <button className="text-xs text-[#7a6a5d] hover:text-[#1f1c1a]" onClick={() => setSelectedRunId(null)}>
-            Clear selection
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {canCancelSelected && (
+            <button
+              className="rounded-full border border-[#d9cabc] px-3 py-1 text-xs font-medium text-[#5c3d2e] hover:bg-[#f4ece3] disabled:text-stone-400"
+              onClick={handleCancelSelectedRun}
+              disabled={cancelRunMutation.isPending}
+            >
+              {cancelRunMutation.isPending ? 'Canceling…' : 'Cancel run'}
+            </button>
+          )}
+          {selectedRunId && (
+            <button className="text-xs text-[#7a6a5d] hover:text-[#1f1c1a]" onClick={() => setSelectedRunId(null)}>
+              Clear selection
+            </button>
+          )}
+        </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Success" value={stats.success} />
@@ -329,3 +341,14 @@ const RunHistory = ({ workflowId, initialStatus = 'all' }) => {
 };
 
 export default RunHistory;
+  const cancelRunMutation = useCancelRunMutation();
+  const selectedRun = useMemo(() => runs.find(run => run.id === selectedRunId), [runs, selectedRunId]);
+  const canCancelSelected = selectedRun && (selectedRun.status === 'queued' || selectedRun.status === 'running');
+
+  const handleCancelSelectedRun = () => {
+    if (!selectedRunId) return;
+    cancelRunMutation.mutate(selectedRunId, {
+      onSuccess: () => toast.success('Run canceled'),
+      onError: () => toast.error('Unable to cancel run'),
+    });
+  };

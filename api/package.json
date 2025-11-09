@@ -18,7 +18,7 @@
     "scheduler": "tsx src/scripts/runScheduler.ts",
     "scheduler:once": "SCHEDULER_RUN_ONCE=true npm run scheduler",
     "test": "node --import tsx --test src/**/*.test.ts",
-    "test:integration": "npm run bootstrap:localstack && LOCALSTACK_HOST_OVERRIDE=localhost SQS_ENDPOINT=http://localhost:4566 S3_ENDPOINT=http://localhost:4566 node --import tsx --test src/tests/integration/webhook.test.ts src/tests/integration/scheduler.test.ts"
+    "test:integration": "npm run bootstrap:localstack && LOCALSTACK_HOST_OVERRIDE=localhost SQS_ENDPOINT=http://localhost:4566 S3_ENDPOINT=http://localhost:4566 node --import tsx --test src/tests/integration/webhook.test.ts src/tests/integration/scheduler.test.ts src/tests/integration/cancel.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.540.0",

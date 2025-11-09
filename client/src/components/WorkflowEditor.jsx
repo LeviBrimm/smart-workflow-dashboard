@@ -1,10 +1,9 @@
 import { useFieldArray, useForm } from 'react-hook-form';
 import { useUpdateWorkflowMutation } from '../api/queries.js';
-import { useToastStore } from '../store/toastStore.js';
+import { toast } from 'react-hot-toast';
 
 const WorkflowEditor = ({ workflow, disabled }) => {
   const mutation = useUpdateWorkflowMutation();
-  const pushToast = useToastStore(state => state.pushToast);
   const {
     register,
     handleSubmit,
@@ -50,10 +49,10 @@ const WorkflowEditor = ({ workflow, disabled }) => {
         },
       });
       reset(values);
-      pushToast({ title: 'Workflow updated', variant: 'success' });
+      toast.success('Workflow updated');
     } catch (error) {
       console.error(error);
-      pushToast({ title: 'Update failed', message: 'Please try again.', variant: 'error' });
+      toast.error('Update failed. Please try again.');
     }
   };
 

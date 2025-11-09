@@ -2,6 +2,7 @@ import { useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCreateWorkflowMutation } from '../api/queries.js';
+import { toast } from 'react-hot-toast';
 
 const schema = z.object({
   name: z.string().min(1),
@@ -44,8 +45,10 @@ const WorkflowForm = () => {
         triggers: values.triggers.map(trigger => ({ kind: trigger.kind, config: JSON.parse(trigger.config) })),
       });
       reset();
+      toast.success('Workflow created');
     } catch (error) {
       console.error(error);
+      toast.error('Creation failed. Please check your payloads.');
     }
   };
 
