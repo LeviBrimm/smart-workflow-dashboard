@@ -8,7 +8,15 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TYPE workflow_status AS ENUM ('active','inactive');
-CREATE TYPE action_kind AS ENUM ('send_email','http_request','write_s3');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'action_kind') THEN
+        CREATE TYPE action_kind AS ENUM ('send_email','http_request','write_s3','send_slack_message','generate_ai_content');
+    END IF;
+END $$;
+
+ALTER TYPE action_kind ADD VALUE IF NOT EXISTS 'send_slack_message';
+ALTER TYPE action_kind ADD VALUE IF NOT EXISTS 'generate_ai_content';
 CREATE TYPE trigger_kind AS ENUM ('schedule','webhook');
 CREATE TYPE run_status AS ENUM ('queued','running','success','failed','canceled');
 CREATE TYPE run_step_status AS ENUM ('pending','running','success','failed','skipped');
@@ -63,6 +71,17 @@ CREATE TABLE IF NOT EXISTS run_steps (
     input JSONB,
     output JSONB,
     error TEXT
+);
+
+CREATE TABLE IF NOT EXISTS user_integrations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    config JSONB NOT NULL DEFAULT '{}'::jsonb,
+    secret_encrypted TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (user_id, name)
 );
 
 CREATE INDEX IF NOT EXISTS runs_workflow_idx ON runs(workflow_id, started_at DESC);

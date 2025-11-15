@@ -14,6 +14,8 @@
     "start": "node dist/app.js",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts",
     "bootstrap:localstack": "tsx src/scripts/bootstrapLocalstack.ts",
+    "seed:dev": "tsx src/scripts/seedDevData.ts",
+    "reseed": "npm run build && npm run seed:dev",
     "worker": "npm run build && node dist/scripts/runWorker.js",
     "scheduler": "tsx src/scripts/runScheduler.ts",
     "scheduler:once": "SCHEDULER_RUN_ONCE=true npm run scheduler",

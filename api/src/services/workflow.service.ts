@@ -12,7 +12,7 @@ const workflowInputSchema = z.object({
       z.object({
         id: z.string().optional(),
         idx: z.number().int().nonnegative(),
-        actionKind: z.enum(['send_email', 'http_request', 'write_s3']),
+        actionKind: z.enum(['send_email', 'http_request', 'write_s3', 'send_slack_message', 'generate_ai_content']),
         config: z.record(z.any()),
       })
     )

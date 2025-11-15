@@ -15,6 +15,15 @@ const triggerMeta = {
   schedule: { text: 'text-[#2d3e50]', bg: 'bg-[#e4e8ef]', icon: '⏱', label: 'Schedule' },
 };
 
+const statusOptions = [
+  { value: 'all', label: 'All' },
+  { value: 'success', label: 'Success' },
+  { value: 'failed', label: 'Failed' },
+  { value: 'running', label: 'Running' },
+  { value: 'queued', label: 'Queued' },
+  { value: 'canceled', label: 'Canceled' },
+];
+
 const formatDate = value => (value ? new Date(value).toLocaleString() : '—');
 const formatDuration = ms => {
   if (!ms && ms !== 0) return '—';
@@ -29,7 +38,10 @@ const formatDuration = ms => {
 const StatusPill = ({ status }) => {
   const meta = statusMeta[status] ?? { text: 'text-[#1f1c1a]', bg: 'bg-[#ece4d9]', label: status, icon: '•' };
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.text} ${meta.bg}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.text} ${meta.bg}`}
+      title={`Status: ${meta.label}`}
+    >
       <span>{meta.icon}</span>
       <span className="capitalize">{status}</span>
     </span>
@@ -42,7 +54,10 @@ const TriggerBadge = ({ kind }) => {
   }
   const meta = triggerMeta[kind] ?? { text: 'text-stone-600', bg: 'bg-stone-100', icon: '⚙︎', label: kind };
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] ${meta.text} ${meta.bg}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] ${meta.text} ${meta.bg}`}
+      title={`Trigger: ${meta.label}`}
+    >
       <span>{meta.icon}</span>
       <span className="capitalize">{meta.label}</span>
     </span>
@@ -152,10 +167,12 @@ const RunHistory = ({ workflowId, initialStatus = 'all' }) => {
   const [selectedRunId, setSelectedRunId] = useState(null);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useWorkflowRunsQuery({
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isFetching } = useWorkflowRunsQuery({
     workflowId,
     status: statusFilter,
   });
+  const [liveUpdates, setLiveUpdates] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const runs = useMemo(
     () => (data ? data.pages.flatMap(page => page.items ?? []) : []),
@@ -231,6 +248,25 @@ const RunHistory = ({ workflowId, initialStatus = 'all' }) => {
     </ul>
   );
 
+  useEffect(() => {
+    setSelectedRunId(null);
+    setSelectedIndex(-1);
+  }, [statusFilter]);
+
+  useEffect(() => {
+    if (!liveUpdates) return;
+    const id = setInterval(() => {
+      refetch();
+    }, 15000);
+    return () => clearInterval(id);
+  }, [liveUpdates, refetch]);
+
+  useEffect(() => {
+    if (!isFetching) {
+      setLastUpdated(new Date());
+    }
+  }, [isFetching]);
+
   const renderEmptyState = () => (
     <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-[#e0d4c6] bg-white/70 px-6 py-8 text-center text-sm text-[#6b5b4b] shadow-inner">
       <span className="text-2xl">🛰️</span>
@@ -238,25 +274,65 @@ const RunHistory = ({ workflowId, initialStatus = 'all' }) => {
     </div>
   );
 
+  const cancelRunMutation = useCancelRunMutation(workflowId);
+  const selectedRun = useMemo(() => runs.find(run => run.id === selectedRunId), [runs, selectedRunId]);
+  const canCancelSelected = selectedRun && (selectedRun.status === 'queued' || selectedRun.status === 'running');
+
+  const handleCancelSelectedRun = () => {
+    if (!selectedRunId) return;
+    cancelRunMutation.mutate(selectedRunId, {
+      onSuccess: () => toast.success('Run canceled'),
+      onError: () => toast.error('Unable to cancel run'),
+    });
+  };
+
   return (
     <div className="card relative overflow-hidden bg-gradient-to-br from-white via-[#f9f6f1] to-[#f2e7dc] text-[#1f1c1a] shadow-xl shadow-[#d9cabc]/70">
       <div className="pointer-events-none absolute -top-16 right-0 h-48 w-48 rounded-full bg-[#d9c2af]/40 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-20 left-8 h-40 w-40 rounded-full bg-[#c4d4de]/40 blur-3xl" />
-      <div className="relative space-y-4">
+      <div className="relative space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-1">
             <h3 className="text-lg font-semibold">Recent Runs</h3>
-            <select
-              className="rounded border border-[#d9cabc] bg-white px-2 py-1 text-xs text-[#1f1c1a]"
-              value={statusFilter}
-              onChange={event => setStatusFilter(event.target.value)}
+            <div className="flex flex-wrap gap-2 text-xs">
+              {statusOptions.map(option => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`rounded-full border px-3 py-0.5 transition ${
+                    statusFilter === option.value
+                      ? 'border-[#c0895a] bg-[#f8ede3] text-[#5c3d2e]'
+                      : 'border-transparent bg-[#f2e7dc] text-[#7a6a5d] hover:border-[#d9cabc]'
+                  }`}
+                  onClick={() => setStatusFilter(option.value)}
+                  aria-pressed={statusFilter === option.value}
+                  title={`Filter runs by ${option.label}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-[#7a6a5d]">
+            <label className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                className="accent-[#c0895a]"
+                checked={liveUpdates}
+                onChange={event => setLiveUpdates(event.target.checked)}
+              />
+              Live updates
+            </label>
+            <button
+              type="button"
+              className="text-[#8c5a3c] hover:text-[#6a4229]"
+              onClick={() => refetch()}
+              disabled={isFetching && !isFetchingNextPage}
             >
-              <option value="all">All statuses</option>
-            <option value="success">Success</option>
-            <option value="failed">Failed</option>
-            <option value="running">Running</option>
-            <option value="queued">Queued</option>
-          </select>
+              {isFetching && !isFetchingNextPage ? 'Refreshing…' : 'Refresh'}
+            </button>
+            <span className="text-[11px]">Updated {lastUpdated ? lastUpdated.toLocaleTimeString() : '—'}</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {canCancelSelected && (
@@ -310,7 +386,9 @@ const RunHistory = ({ workflowId, initialStatus = 'all' }) => {
                     >
                       <div className="flex items-center justify-between">
                         <StatusPill status={run.status} />
-                        <span className="text-xs text-[#77675a]">{formatDate(run.startedAt)}</span>
+                        <span className="text-xs text-[#77675a]" title={formatDate(run.startedAt)}>
+                          {run.startedAt ? new Date(run.startedAt).toLocaleTimeString() : '—'}
+                        </span>
                       </div>
                       <div className="mt-1 flex flex-wrap items-center justify-between text-xs text-[#7a6a5d]">
                         <TriggerBadge kind={run.triggerKind} />
@@ -335,20 +413,8 @@ const RunHistory = ({ workflowId, initialStatus = 'all' }) => {
           <div>{selectedRunId ? <RunDetailPanel runId={selectedRunId} onClose={() => setSelectedRunId(null)} /> : null}</div>
         </div>
       )}
-      </div>
     </div>
   );
 };
 
 export default RunHistory;
-  const cancelRunMutation = useCancelRunMutation();
-  const selectedRun = useMemo(() => runs.find(run => run.id === selectedRunId), [runs, selectedRunId]);
-  const canCancelSelected = selectedRun && (selectedRun.status === 'queued' || selectedRun.status === 'running');
-
-  const handleCancelSelectedRun = () => {
-    if (!selectedRunId) return;
-    cancelRunMutation.mutate(selectedRunId, {
-      onSuccess: () => toast.success('Run canceled'),
-      onError: () => toast.error('Unable to cancel run'),
-    });
-  };

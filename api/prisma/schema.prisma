@@ -12,7 +12,21 @@ model User {
   email      String   @unique
   cognitoSub String   @unique
   workflows  Workflow[]
+  integrations UserIntegration[]
   createdAt  DateTime @default(now())
+}
+
+model UserIntegration {
+  id              String   @id @default(uuid())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
+  name            String
+  type            String
+  config          Json     @default("{}")
+  secretEncrypted String
+  createdAt       DateTime @default(now())
+
+  @@unique([userId, name])
 }
 
 model Workflow {
@@ -93,6 +107,8 @@ enum ActionKind {
   send_email
   http_request
   write_s3
+  send_slack_message
+  generate_ai_content
 }
 
 enum TriggerKind {

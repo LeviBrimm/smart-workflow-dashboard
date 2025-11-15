@@ -108,12 +108,14 @@ export const useRunDetailQuery = runId =>
     enabled: Boolean(runId),
   });
 
-export const useCancelRunMutation = () => {
+export const useCancelRunMutation = workflowId => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: runId => api.post(`/runs/${runId}/cancel`).then(res => res.data),
     onSuccess: (_data, runId) => {
-      qc.invalidateQueries({ queryKey: ['runs'] });
+      qc.invalidateQueries({
+        predicate: query => Array.isArray(query.queryKey) && query.queryKey[0] === 'runs' && query.queryKey[1] === workflowId,
+      });
       qc.invalidateQueries({ queryKey: ['run', runId] });
     },
   });
@@ -124,3 +126,34 @@ export const useScheduleTriggersQuery = () =>
     queryKey: ['schedule-triggers'],
     queryFn: async () => (await api.get('/triggers/schedules')).data,
   });
+
+export const useIntegrationsQuery = () =>
+  useQuery({
+    queryKey: ['integrations'],
+    queryFn: async () => (await api.get('/integrations')).data,
+  });
+
+export const useCreateIntegrationMutation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: payload => api.post('/integrations', payload).then(res => res.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['integrations'] }),
+  });
+};
+
+export const useDeleteIntegrationMutation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: integrationId => api.delete(`/integrations/${integrationId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['integrations'] }),
+  });
+};
+
+export const useUpdateIntegrationMutation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ integrationId, payload }) =>
+      api.patch(`/integrations/${integrationId}`, payload).then(res => res.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['integrations'] }),
+  });
+};
