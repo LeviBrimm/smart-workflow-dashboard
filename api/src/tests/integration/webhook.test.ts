@@ -4,6 +4,16 @@ import crypto from 'node:crypto';
 import { execSync } from 'node:child_process';
 import fetch from 'node-fetch';
 
+if (!process.env.LOCALSTACK_HOST_OVERRIDE) {
+  process.env.LOCALSTACK_HOST_OVERRIDE = 'localhost';
+}
+if (!process.env.SQS_ENDPOINT) {
+  process.env.SQS_ENDPOINT = 'http://localhost:4566';
+}
+if (!process.env.S3_ENDPOINT) {
+  process.env.S3_ENDPOINT = 'http://localhost:4566';
+}
+
 const BASE_URL = process.env.API_BASE ?? 'http://localhost:4000/v1';
 const DB_URL = process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5433/workflows';
 

@@ -1,6 +1,6 @@
 export type WorkflowStatus = 'active' | 'inactive';
 export type TriggerKind = 'schedule' | 'webhook';
-export type ActionKind = 'send_email' | 'http_request' | 'write_s3';
+export type ActionKind = 'send_email' | 'http_request' | 'write_s3' | 'send_slack_message' | 'generate_ai_content';
 export type RunStatus = 'queued' | 'running' | 'success' | 'failed' | 'canceled';
 export type RunStepStatus = 'pending' | 'running' | 'success' | 'failed' | 'skipped';
 

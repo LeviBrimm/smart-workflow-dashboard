@@ -40,6 +40,7 @@ services:
       COGNITO_CLIENT_SECRET: 1ec24i67j01hmcbtfb7tet94lijf6gkhrqis3qmt9qu350ffjn61
       COGNITO_ISSUER: https://cognito-idp.us-east-2.amazonaws.com/us-east-2_d173vL38i
       COGNITO_DOMAIN: https://us-east-2d173vl38i.auth.us-east-2.amazoncognito.com
+      SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY:-dev-secret-change-me-please-123456}
       AWS_ACCESS_KEY_ID: localstack
       AWS_SECRET_ACCESS_KEY: localstack
       AWS_SDK_SQS_PREFER_JSON_PROTOCOL: 'false'

@@ -1,10 +1,11 @@
 import WorkflowTable from '../components/WorkflowTable.jsx';
 import WorkflowForm from '../components/WorkflowForm.jsx';
 import ScheduleOverview from '../components/ScheduleOverview.jsx';
-import { useWorkflowsQuery } from '../api/queries.js';
+import { useIntegrationsQuery, useWorkflowsQuery } from '../api/queries.js';
 
 const WorkflowsPage = () => {
   const { data, isLoading } = useWorkflowsQuery();
+  const { data: integrations = [] } = useIntegrationsQuery();
 
   return (
     <div className="space-y-6">
@@ -26,7 +27,7 @@ const WorkflowsPage = () => {
       )}
       <section>
         <h2 className="mb-3 text-xl font-semibold">New Workflow</h2>
-        <WorkflowForm />
+        <WorkflowForm integrations={integrations} />
       </section>
     </div>
   );

@@ -10,7 +10,7 @@ const schema = z.object({
   status: z.enum(['active', 'inactive']),
   steps: z.array(
     z.object({
-      actionKind: z.enum(['send_email', 'http_request', 'write_s3']),
+      actionKind: z.enum(['send_email', 'http_request', 'write_s3', 'send_slack_message', 'generate_ai_content']),
       config: z.string().min(2),
     })
   ),
@@ -22,8 +22,8 @@ const schema = z.object({
   ),
 });
 
-const WorkflowForm = () => {
-  const { register, handleSubmit, control, reset } = useForm({
+const WorkflowForm = ({ integrations = [] }) => {
+  const { register, handleSubmit, control, reset, watch, getValues, setValue } = useForm({
     defaultValues: {
       name: '',
       description: '',
@@ -36,6 +36,35 @@ const WorkflowForm = () => {
   const steps = useFieldArray({ control, name: 'steps' });
   const triggers = useFieldArray({ control, name: 'triggers' });
   const mutation = useCreateWorkflowMutation();
+  const slackIntegrations = integrations.filter(integration => integration.type === 'slack_webhook');
+  const aiIntegrations = integrations.filter(integration => integration.type === 'openai');
+  const watchedSteps = watch('steps');
+
+  const getIntegrationIdFromConfig = (index, fallback = '') => {
+    try {
+      const configString = getValues(`steps.${index}.config`);
+      if (!configString) return fallback;
+      const parsed = JSON.parse(configString);
+      return typeof parsed.integrationId === 'string' ? parsed.integrationId : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const setIntegrationOnConfig = (index, integrationId) => {
+    try {
+      const configString = getValues(`steps.${index}.config`);
+      const parsed = configString ? JSON.parse(configString) : {};
+      if (integrationId) {
+        parsed.integrationId = integrationId;
+      } else {
+        delete parsed.integrationId;
+      }
+      setValue(`steps.${index}.config`, JSON.stringify(parsed, null, 2), { shouldDirty: true });
+    } catch {
+      setValue(`steps.${index}.config`, JSON.stringify({ integrationId }, null, 2), { shouldDirty: true });
+    }
+  };
 
   const onSubmit = async values => {
     try {
@@ -85,24 +114,63 @@ const WorkflowForm = () => {
         <div>
           <label className="text-sm text-[#7a6a5d]">Steps</label>
           <div className="mt-2 flex flex-col gap-3">
-            {steps.fields.map((field, index) => (
-              <div key={field.id} className="rounded-2xl border border-[#e0d4c6] bg-white/70 p-3 shadow-inner">
-                <select
-                  className="w-full rounded border border-[#d9cabc] bg-white px-2 py-1 text-[#1f1c1a] focus:border-[#b28967] focus:outline-none"
-                  {...register(`steps.${index}.actionKind`)}
-                >
-                  <option value="http_request">HTTP Request</option>
-                  <option value="send_email">Send Email</option>
-                  <option value="write_s3">Write to S3</option>
-                </select>
-                <textarea
-                  className="mt-2 w-full rounded border border-[#d9cabc] bg-white px-2 py-1 text-xs text-[#1f1c1a] focus:border-[#b28967] focus:outline-none"
-                  rows={3}
-                  {...register(`steps.${index}.config`)}
-                />
-              </div>
-            ))}
-            <button type="button" className="btn-primary" onClick={() => steps.append({ actionKind: 'http_request', config: '{"url":"https://example.com"}' })}>
+            {steps.fields.map((field, index) => {
+              const currentKind = watchedSteps?.[index]?.actionKind;
+              const isSlackStep = currentKind === 'send_slack_message';
+              const isAIStep = currentKind === 'generate_ai_content';
+              const relevantIntegrations = isSlackStep ? slackIntegrations : aiIntegrations;
+              const integrationId = getIntegrationIdFromConfig(index, '');
+
+              return (
+                <div key={field.id} className="rounded-2xl border border-[#e0d4c6] bg-white/70 p-3 shadow-inner">
+                  <select
+                    className="w-full rounded border border-[#d9cabc] bg-white px-2 py-1 text-[#1f1c1a] focus:border-[#b28967] focus:outline-none"
+                    {...register(`steps.${index}.actionKind`)}
+                  >
+                    <option value="http_request">HTTP Request</option>
+                    <option value="send_email">Send Email</option>
+                    <option value="write_s3">Write to S3</option>
+                    <option value="send_slack_message">Send Slack Message</option>
+                    <option value="generate_ai_content">Generate AI Content</option>
+                  </select>
+                  {(isSlackStep || isAIStep) && (
+                    <div className="mt-2 space-y-1">
+                      <label className="text-xs text-[#7a6a5d]">
+                        {isSlackStep ? 'Slack integration' : 'OpenAI integration'}
+                      </label>
+                      {relevantIntegrations.length === 0 ? (
+                        <p className="text-xs text-[#a18673]">Add an integration in Settings to unlock this step.</p>
+                      ) : (
+                        <select
+                          className="w-full rounded border border-[#d9cabc] bg-white px-2 py-1 text-xs text-[#1f1c1a]"
+                          value={integrationId}
+                          onChange={event => setIntegrationOnConfig(index, event.target.value)}
+                        >
+                          <option value="">
+                            {isSlackStep ? 'Select Slack webhook' : 'Select OpenAI key (optional)'}
+                          </option>
+                          {relevantIntegrations.map(integration => (
+                            <option key={integration.id} value={integration.id}>
+                              {integration.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  )}
+                  <textarea
+                    className="mt-2 w-full rounded border border-[#d9cabc] bg-white px-2 py-1 text-xs text-[#1f1c1a] focus:border-[#b28967] focus:outline-none"
+                    rows={3}
+                    {...register(`steps.${index}.config`)}
+                  />
+                </div>
+              );
+            })}
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => steps.append({ actionKind: 'http_request', config: '{"url":"https://example.com"}' })}
+            >
               Add step
             </button>
           </div>
@@ -126,7 +194,11 @@ const WorkflowForm = () => {
                 />
               </div>
             ))}
-            <button type="button" className="btn-primary" onClick={() => triggers.append({ kind: 'schedule', config: '{"cron":"0 8 * * *"}' })}>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => triggers.append({ kind: 'schedule', config: '{"cron":"0 8 * * *"}' })}
+            >
               Add trigger
             </button>
           </div>

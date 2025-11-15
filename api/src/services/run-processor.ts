@@ -2,9 +2,11 @@ import { Pool } from 'pg';
 import { sendEmail, type EmailConfig } from '../executors/sendEmail.js';
 import { executeHttpRequest, type HttpConfig } from '../executors/httpRequest.js';
 import { writeS3 } from '../executors/writeS3.js';
+import { sendSlackMessage, type SlackConfig } from '../executors/sendSlackMessage.js';
+import { generateAIContent, type AIContentConfig } from '../executors/generateAIContent.js';
 import { resolveTemplates } from '../lib/templates.js';
 
-type ActionKind = 'send_email' | 'http_request' | 'write_s3';
+type ActionKind = 'send_email' | 'http_request' | 'write_s3' | 'send_slack_message' | 'generate_ai_content';
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -22,6 +24,8 @@ const actionMap: Record<ActionKind, Executor> = {
       contentType: typeof config.contentType === 'string' ? config.contentType : undefined,
     });
   },
+  send_slack_message: async config => sendSlackMessage(config as unknown as SlackConfig),
+  generate_ai_content: async config => generateAIContent(config as unknown as AIContentConfig),
 };
 
 export interface SQSPayload {

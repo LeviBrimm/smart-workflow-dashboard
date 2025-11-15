@@ -1,4 +1,5 @@
 import { pool } from '../lib/db.js';
+import { fetchIntegrationSecrets } from './integration.service.js';
 
 interface StepRow {
   idx: number;
@@ -49,12 +50,49 @@ export const createRunForTrigger = async (triggerId: string, payload: Record<str
 
     await client.query('COMMIT');
 
+    const integrationIds = stepsRes.rows
+      .map(row => {
+        const integrationId = typeof row.config?.integrationId === 'string' ? row.config.integrationId : undefined;
+        return integrationId;
+      })
+      .filter((id): id is string => Boolean(id));
+
+    const secretMap = await fetchIntegrationSecrets(userId, Array.from(new Set(integrationIds)));
+
+    const steps = stepsRes.rows.map(step => {
+      let config = { ...(step.config ?? {}) };
+      if (step.action_kind === 'send_slack_message') {
+        const integrationId = typeof config.integrationId === 'string' ? config.integrationId : undefined;
+        if (!integrationId) {
+          throw new Error('Slack step missing integrationId');
+        }
+        const integration = secretMap.get(integrationId);
+        if (!integration) {
+          throw new Error('Slack integration not found');
+        }
+        config = { ...config, webhookUrl: integration.secret };
+        delete config.integrationId;
+      }
+      if (step.action_kind === 'generate_ai_content') {
+        const integrationId = typeof config.integrationId === 'string' ? config.integrationId : undefined;
+        if (integrationId) {
+          const integration = secretMap.get(integrationId);
+          if (!integration) {
+            throw new Error('AI integration not found');
+          }
+          config = { ...config, apiKey: integration.secret };
+          delete config.integrationId;
+        }
+      }
+      return { idx: step.idx, action: step.action_kind, config };
+    });
+
     return {
       runId: runRes.rows[0].id,
       workflowId,
       userId,
       triggerId,
-      steps: stepsRes.rows.map(step => ({ idx: step.idx, action: step.action_kind, config: step.config })),
+      steps,
       input: { payload },
     };
   } catch (error) {

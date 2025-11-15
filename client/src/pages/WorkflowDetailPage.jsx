@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { useWorkflowDetailQuery } from '../api/queries.js';
+import { useIntegrationsQuery, useWorkflowDetailQuery } from '../api/queries.js';
 import TriggerList from '../components/TriggerList.jsx';
 import RunHistory from '../components/RunHistory.jsx';
 import WorkflowEditor from '../components/WorkflowEditor.jsx';
@@ -7,6 +7,7 @@ import WorkflowEditor from '../components/WorkflowEditor.jsx';
 const WorkflowDetailPage = () => {
   const { workflowId } = useParams();
   const { data: workflow } = useWorkflowDetailQuery(workflowId);
+  const { data: integrations = [] } = useIntegrationsQuery();
 
   if (!workflow) {
     return <p>Loading workflow…</p>;
@@ -29,7 +30,7 @@ const WorkflowDetailPage = () => {
           {workflow.status}
         </span>
       </header>
-      <WorkflowEditor workflow={workflow} disabled={!canEdit} />
+      <WorkflowEditor workflow={workflow} disabled={!canEdit} integrations={integrations} />
       <section className="grid gap-6 md:grid-cols-3">
         <div className="space-y-4 md:col-span-2">
           <div className="card bg-white text-[#1f1c1a]">
