@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useDeleteWorkflowMutation, useToggleWorkflowStatusMutation } from '../api/queries.js';
 import { toast } from 'react-hot-toast';
@@ -7,9 +8,13 @@ const statusColors = {
   inactive: 'text-stone-600 bg-stone-100',
 };
 
-const WorkflowTable = ({ workflows = [] }) => {
+const WorkflowTable = ({ workflows = [], templates = [] }) => {
   const { mutateAsync: deleteWorkflow, isPending } = useDeleteWorkflowMutation();
   const toggleStatus = useToggleWorkflowStatusMutation();
+  const templateNames = useMemo(
+    () => Object.fromEntries((templates ?? []).map(template => [template.id, template.name])),
+    [templates]
+  );
 
   const handleDelete = async workflow => {
     if (!window.confirm(`Delete workflow "${workflow.name}"? This cannot be undone.`)) return;
@@ -41,6 +46,11 @@ const WorkflowTable = ({ workflows = [] }) => {
                   {workflow.name}
                 </Link>
                 <p className="text-xs text-[#7a6a5d]">{workflow.description ?? 'No description'}</p>
+                {workflow.templateId && (
+                  <p className="text-[11px] text-[#a07d64]">
+                    Template: {templateNames[workflow.templateId] ?? workflow.templateId}
+                  </p>
+                )}
               </td>
               <td className="px-4 py-3">
                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusColors[workflow.status] ?? 'text-stone-600 bg-stone-100'}`}>

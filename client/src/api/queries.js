@@ -133,6 +133,12 @@ export const useIntegrationsQuery = () =>
     queryFn: async () => (await api.get('/integrations')).data,
   });
 
+export const useTemplatesQuery = () =>
+  useQuery({
+    queryKey: ['templates'],
+    queryFn: async () => (await api.get('/templates')).data,
+  });
+
 export const useCreateIntegrationMutation = () => {
   const qc = useQueryClient();
   return useMutation({

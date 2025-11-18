@@ -23,6 +23,8 @@ export interface WorkflowSummary {
   name: string;
   status: WorkflowStatus;
   description?: string;
+  templateId?: string;
+  templateInputs?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }

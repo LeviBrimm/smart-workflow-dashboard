@@ -11,6 +11,7 @@ import triggersRouter from './routes/triggers.js';
 import webhookRouter from './routes/webhook.js';
 import authRouter from './routes/auth.js';
 import integrationsRouter from './routes/integrations.js';
+import templatesRouter from './routes/templates.js';
 
 dotenv.config();
 
@@ -57,6 +58,7 @@ authedRouter.use('/workflows', workflowsRouter);
 authedRouter.use('/runs', runsRouter);
 authedRouter.use('/triggers', triggersRouter);
 authedRouter.use('/integrations', integrationsRouter);
+authedRouter.use('/templates', templatesRouter);
 
 app.use('/v1', authedRouter);
 

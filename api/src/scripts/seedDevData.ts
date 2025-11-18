@@ -51,16 +51,17 @@ const ensureWorkflow = async (
   name: string,
   description: string,
   steps: Array<{ idx: number; actionKind: string; config: Record<string, unknown> }>,
-  triggers: Array<{ kind: 'schedule' | 'webhook'; config: Record<string, unknown> }>
+  triggers: Array<{ kind: 'schedule' | 'webhook'; config: Record<string, unknown> }>,
+  options: { templateId?: string; templateInputs?: Record<string, unknown> } = {}
 ) => {
   const existing = await pool.query('SELECT id FROM workflows WHERE user_id = $1 AND name = $2', [devUserId, name]);
   let workflowId: string;
   if (existing.rowCount) {
     workflowId = existing.rows[0].id as string;
-    await pool.query('UPDATE workflows SET description = $2, updated_at = now() WHERE id = $1', [
-      workflowId,
-      description,
-    ]);
+    await pool.query(
+      'UPDATE workflows SET description = $2, template_id = $3, template_inputs = $4, updated_at = now() WHERE id = $1',
+      [workflowId, description, options.templateId ?? null, options.templateInputs ?? null]
+    );
     await pool.query('DELETE FROM run_steps WHERE run_id IN (SELECT id FROM runs WHERE workflow_id = $1)', [workflowId]);
     await pool.query('UPDATE runs SET trigger_id = NULL WHERE trigger_id IN (SELECT id FROM triggers WHERE workflow_id = $1)', [
       workflowId,
@@ -70,10 +71,10 @@ const ensureWorkflow = async (
     await pool.query('DELETE FROM triggers WHERE workflow_id = $1', [workflowId]);
   } else {
     const inserted = await pool.query(
-      `INSERT INTO workflows (user_id, name, description, status)
-       VALUES ($1, $2, $3, 'inactive')
+      `INSERT INTO workflows (user_id, name, description, status, template_id, template_inputs)
+       VALUES ($1, $2, $3, 'inactive', $4, $5)
        RETURNING id`,
-      [devUserId, name, description]
+      [devUserId, name, description, options.templateId ?? null, options.templateInputs ?? null]
     );
     workflowId = inserted.rows[0].id as string;
   }
@@ -176,6 +177,12 @@ const main = async () => {
     secret: 'sk-demo-123456789',
   });
 
+  const templateInputs = {
+    httpEndpoint: 'https://api.example.com/leads',
+    openAiTone: 'friendly',
+    slackChannel: '#workflow-alerts',
+  };
+
   const { workflowId, triggerIds } = await ensureWorkflow(
     'Demo Campaign Follow-up',
     'Example workflow showing HTTP + AI + Slack actions',
@@ -211,7 +218,8 @@ const main = async () => {
     [
       { kind: 'schedule', config: { cron: '0 14 * * 1-5', timezone: 'UTC' } },
       { kind: 'webhook', config: { secret: 'demo-webhook-secret' } },
-    ]
+    ],
+    { templateId: 'ai_follow_up_slack', templateInputs }
   );
 
   await seedRuns(workflowId, triggerIds.get('schedule'));

@@ -7,6 +7,8 @@ const workflowInputSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
   status: z.enum(['active', 'inactive']).optional(),
+  templateId: z.string().nullable().optional(),
+  templateInputs: z.record(z.any()).nullable().optional(),
   steps: z
     .array(
       z.object({
@@ -47,6 +49,8 @@ type WorkflowRow = {
   name: string;
   status: WorkflowStatus;
   description: string | null;
+  template_id: string | null;
+  template_inputs: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 };
@@ -67,7 +71,7 @@ type TriggerRow = {
 
 const hydrateWorkflow = async (id: string, client?: PoolClient): Promise<WorkflowDetail | null> => {
   const workflowRes = await run<WorkflowRow>(
-    'SELECT id, name, status, description, created_at, updated_at FROM workflows WHERE id = $1',
+    'SELECT id, name, status, description, template_id, template_inputs, created_at, updated_at FROM workflows WHERE id = $1',
     [id],
     client
   );
@@ -91,6 +95,8 @@ const hydrateWorkflow = async (id: string, client?: PoolClient): Promise<Workflo
     name: row.name,
     status: row.status,
     description: row.description ?? undefined,
+    templateId: row.template_id ?? undefined,
+    templateInputs: row.template_inputs ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     steps: stepsRes.rows.map(
@@ -114,8 +120,15 @@ const hydrateWorkflow = async (id: string, client?: PoolClient): Promise<Workflo
 
 export const listWorkflows = async (userId?: string): Promise<WorkflowSummary[]> => {
   const ownerId = ensureUser(userId);
-  const rows = await pool.query<WorkflowSummary & { created_at: string; updated_at: string }>(
-    'SELECT id, name, status, description, created_at, updated_at FROM workflows WHERE user_id = $1 ORDER BY created_at DESC LIMIT 100',
+  const rows = await pool.query<
+    WorkflowSummary & {
+      template_id: string | null;
+      template_inputs: Record<string, unknown> | null;
+      created_at: string;
+      updated_at: string;
+    }
+  >(
+    'SELECT id, name, status, description, template_id, template_inputs, created_at, updated_at FROM workflows WHERE user_id = $1 ORDER BY created_at DESC LIMIT 100',
     [ownerId]
   );
 
@@ -124,6 +137,8 @@ export const listWorkflows = async (userId?: string): Promise<WorkflowSummary[]>
     name: row.name,
     status: row.status as WorkflowStatus,
     description: row.description ?? undefined,
+    templateId: row.template_id ?? undefined,
+    templateInputs: row.template_inputs ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));
@@ -144,8 +159,15 @@ export const createWorkflow = async (payload: unknown, userId?: string): Promise
 
   return withTransaction(async client => {
     const workflowRes = await client.query<{ id: string }>(
-      'INSERT INTO workflows (id, user_id, name, status, description) VALUES (gen_random_uuid(), $1, $2, $3, $4) RETURNING id',
-      [ownerId, data.name ?? 'Untitled Workflow', data.status ?? 'inactive', data.description ?? null]
+      'INSERT INTO workflows (id, user_id, name, status, description, template_id, template_inputs) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6) RETURNING id',
+      [
+        ownerId,
+        data.name ?? 'Untitled Workflow',
+        data.status ?? 'inactive',
+        data.description ?? null,
+        data.templateId ?? null,
+        data.templateInputs ?? null,
+      ]
     );
 
     const workflowId = workflowRes.rows[0].id;
@@ -184,6 +206,9 @@ export const createWorkflow = async (payload: unknown, userId?: string): Promise
 export const updateWorkflow = async (id: string, payload: unknown, userId?: string): Promise<WorkflowDetail> => {
   const ownerId = ensureUser(userId);
   const data = workflowInputSchema.parse(payload);
+  const rawPayload = typeof payload === 'object' && payload !== null ? (payload as Record<string, unknown>) : {};
+  const templateIdProvided = Object.prototype.hasOwnProperty.call(rawPayload, 'templateId');
+  const templateInputsProvided = Object.prototype.hasOwnProperty.call(rawPayload, 'templateInputs');
 
   return withTransaction(async client => {
     const existing = await client.query('SELECT id FROM workflows WHERE id = $1 AND user_id = $2', [id, ownerId]);
@@ -196,6 +221,14 @@ export const updateWorkflow = async (id: string, payload: unknown, userId?: stri
         'UPDATE workflows SET name = COALESCE($1, name), description = COALESCE($2, description), status = COALESCE($3, status), updated_at = NOW() WHERE id = $4',
         [data.name ?? null, data.description ?? null, data.status ?? null, id]
       );
+    }
+
+    if (templateIdProvided) {
+      await client.query('UPDATE workflows SET template_id = $1, updated_at = NOW() WHERE id = $2', [data.templateId ?? null, id]);
+    }
+
+    if (templateInputsProvided) {
+      await client.query('UPDATE workflows SET template_inputs = $1, updated_at = NOW() WHERE id = $2', [data.templateInputs ?? null, id]);
     }
 
     if (data.steps) {
