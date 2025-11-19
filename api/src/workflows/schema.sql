@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS workflows (
     name TEXT NOT NULL,
     status workflow_status NOT NULL DEFAULT 'inactive',
     description TEXT,
+    template_id TEXT,
+    template_inputs JSONB,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );

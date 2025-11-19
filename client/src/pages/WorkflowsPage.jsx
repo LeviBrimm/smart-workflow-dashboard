@@ -1,11 +1,13 @@
 import WorkflowTable from '../components/WorkflowTable.jsx';
 import WorkflowForm from '../components/WorkflowForm.jsx';
 import ScheduleOverview from '../components/ScheduleOverview.jsx';
-import { useIntegrationsQuery, useWorkflowsQuery } from '../api/queries.js';
+import TemplateGallery from '../components/TemplateGallery.jsx';
+import { useIntegrationsQuery, useTemplatesQuery, useWorkflowsQuery } from '../api/queries.js';
 
 const WorkflowsPage = () => {
   const { data, isLoading } = useWorkflowsQuery();
   const { data: integrations = [] } = useIntegrationsQuery();
+  const { data: templates = [], isLoading: templatesLoading } = useTemplatesQuery();
 
   return (
     <div className="space-y-6">
@@ -20,14 +22,18 @@ const WorkflowsPage = () => {
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <WorkflowTable workflows={data ?? []} />
+            <WorkflowTable workflows={data ?? []} templates={templates} />
           </div>
           <ScheduleOverview />
         </div>
       )}
-      <section>
-        <h2 className="mb-3 text-xl font-semibold">New Workflow</h2>
-        <WorkflowForm integrations={integrations} />
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">New Workflow</h2>
+        {templatesLoading ? <p className="text-sm text-[#7a6a5d]">Loading templates…</p> : <TemplateGallery templates={templates} />}
+        <div className="card bg-white">
+          <h3 className="mb-3 text-lg font-semibold text-[#1f1c1a]">Build your own</h3>
+          <WorkflowForm integrations={integrations} />
+        </div>
       </section>
     </div>
   );

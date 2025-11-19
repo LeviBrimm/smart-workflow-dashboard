@@ -112,6 +112,12 @@ Open http://localhost:5173, click “Login,” complete the Cognito hosted flow,
 - Slack + AI steps expose dropdowns so you can pick a stored integration instead of pasting secrets into workflow configs. AI steps fall back to the server-wide `OPENAI_API_KEY` if no per-user key is selected
 - This pattern can be extended for CRM/email credentials—add a new integration type, reference it in a step, and hydrate the secret before enqueuing runs.
 
+### Templates (beta)
+
+- The **Templates** gallery on the Workflows page uses `api/src/templates/catalog.ts`. Add or tweak recipes there (fields + workflow blueprint) and rebuild the API to expose them at `/v1/templates`.
+- Template-backed workflows save `templateId` + the field values you entered so you can reopen the guided form later. Use the buttons in the template card to edit inputs or convert the workflow to a fully custom version.
+- Once converted, the regular editor unlocks so you can edit JSON freely. Conversions are one-way, so duplicate a workflow first if you want to keep both versions.
+
 ## CI & tests
 
 - `api`: ESLint, `tsc --noEmit`, unit tests (`npm test`), and integration tests (webhook, scheduler, cancel) run in GitHub Actions.

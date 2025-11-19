@@ -36,6 +36,8 @@ model Workflow {
   name        String
   status      WorkflowStatus @default(inactive)
   description String?
+  templateId  String?
+  templateInputs Json?
   steps       Step[]
   triggers    Trigger[]
   runs        Run[]
